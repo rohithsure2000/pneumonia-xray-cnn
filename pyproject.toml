@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pneumonia-xray-cnn"
+version = "1.0.0"
+description = "CNN architectures for pneumonia detection in pediatric chest X-rays"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Rohith Sure", email = "surerh2000@gmail.com" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+
+[project.urls]
+Repository = "https://github.com/rohithsure2000/pneumonia-xray-cnn"
+
+[project.scripts]
+pneumonia-train = "pneumonia_cnn.train:main"
+pneumonia-evaluate = "pneumonia_cnn.evaluate:main"
+pneumonia-predict = "pneumonia_cnn.predict:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q"
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+line_length = 100
