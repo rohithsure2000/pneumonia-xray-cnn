@@ -61,7 +61,8 @@ def main() -> None:
     datasets = build_generators(config)
 
     logger.info("Building model '%s'", args.model)
-    model_kwargs = {"fine_tune": args.fine_tune} if args.model in {"vgg16", "vgg19", "resnet50"} else {}
+    transfer_models = {"vgg16", "vgg19", "resnet50"}
+    model_kwargs = {"fine_tune": args.fine_tune} if args.model in transfer_models else {}
     model = build_model(args.model, config.input_shape, **model_kwargs)
     model.compile(
         optimizer=Adam(learning_rate=config.learning_rate),

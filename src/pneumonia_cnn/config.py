@@ -7,7 +7,7 @@ line without threading a dozen function arguments through the codebase.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
 

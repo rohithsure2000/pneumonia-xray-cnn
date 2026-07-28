@@ -24,7 +24,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--model-path", type=Path, required=True)
     parser.add_argument("--data-dir", type=Path, default=Path("data/chest_xray"))
     parser.add_argument("--image-size", type=int, default=150)
-    parser.add_argument("--output", type=Path, default=None, help="Optional path to write metrics JSON.")
+    parser.add_argument(
+        "--output", type=Path, default=None, help="Optional path to write metrics JSON."
+    )
     return parser.parse_args()
 
 
