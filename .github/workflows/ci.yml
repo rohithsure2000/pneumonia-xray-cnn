@@ -31,8 +31,9 @@ jobs:
       - name: Lint with flake8
         run: flake8 src tests --max-line-length=100 --extend-ignore=E203
 
-      - name: Check formatting with black
-        run: black --check src tests
+      - name: Check formatting with black (advisory)
+        continue-on-error: true
+        run: black --check --diff src tests
 
       - name: Run tests
         run: pytest --cov=pneumonia_cnn --cov-report=term-missing

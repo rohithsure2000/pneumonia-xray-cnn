@@ -14,12 +14,10 @@ from pneumonia_cnn.utils import compute_metrics
 
 
 def test_compute_metrics_matches_known_confusion_matrix():
-    # 190 true negatives, 44 false positives, 4 false negatives, 386 true positives.
+# NORMAL class (label 0): 190 correct, 44 misclassified as PNEUMONIA
+    # PNEUMONIA class (label 1): 4 misclassified as NORMAL, 386 correct
     y_true = np.array([0] * (190 + 44) + [1] * (4 + 386))
-    y_pred_proba = np.array(
-        [0] * 190 + [1] * 44  # NORMAL class: 190 correct, 44 misclassified
-        + [0] * 4 + [1] * 386  # PNEUMONIA class: 4 misclassified, 386 correct
-    )
+    y_pred_proba = np.array([0] * 190 + [1] * 44 + [0] * 4 + [1] * 386)
 
     metrics = compute_metrics(y_true, y_pred_proba)
 
