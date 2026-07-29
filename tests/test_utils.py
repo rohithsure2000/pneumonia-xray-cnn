@@ -14,7 +14,7 @@ from pneumonia_cnn.utils import compute_metrics
 
 
 def test_compute_metrics_matches_known_confusion_matrix():
-# NORMAL class (label 0): 190 correct, 44 misclassified as PNEUMONIA
+    # NORMAL class (label 0): 190 correct, 44 misclassified as PNEUMONIA
     # PNEUMONIA class (label 1): 4 misclassified as NORMAL, 386 correct
     y_true = np.array([0] * (190 + 44) + [1] * (4 + 386))
     y_pred_proba = np.array([0] * 190 + [1] * 44 + [0] * 4 + [1] * 386)
