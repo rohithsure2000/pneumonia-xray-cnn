@@ -68,8 +68,44 @@ papering over:
 - **No random seed was fixed**, so re-running the original notebook
   produced slightly different numbers each time. `utils.set_seed` is
   called at the start of `train.py` for reproducibility.
+- **The dataset's official `val/` folder contains only 16 images.** This
+  is a well-documented quirk of this specific Kaggle dataset, and it bit
+  a real training run of this repo's `improved` model: with such a tiny,
+  noisy validation signal, `EarlyStopping`/`ReduceLROnPlateau` restored a
+  checkpoint that had collapsed into predicting `NORMAL` for every image
+  (37.5% test accuracy, 0% precision/recall on the `PNEUMONIA` class --
+  which is exactly the fraction of `NORMAL` images in the test set).
+  `build_generators` now carves a validation split out of the *training*
+  folder instead (`TrainingConfig.validation_split`, default 15%), giving
+  a validation set roughly 50x larger. The real `test/` folder is
+  untouched by this change and remains the only thing used for the
+  reported metrics above.
 
 Because of these fixes, a fresh run of `train.py` in this repository is
 not expected to reproduce the exact percentages above -- it's a distinct,
 corrected implementation of the same experiment. The table is kept here as
 the historical result the team reported.
+
+## Reproduced results (this repo)
+
+Actual output of `train.py --model improved --epochs 15` in this repo,
+after the validation-split fix above (see `test_metrics.json`):
+
+| Metric | Value |
+| --- | --- |
+| Accuracy | 81.89% |
+| Precision | 81.99% |
+| Recall | 91.03% |
+| F1 | 86.26% |
+
+Confusion matrix: 156 true negatives, 78 false positives, 35 false
+negatives, 355 true positives (624 test images total).
+
+This is lower than the historical 91.28% figure above, which is expected
+-- this is a different, corrected implementation (fixed random seed, fixed
+validation split, fixed VGG-19/layer-freezing bugs) rather than a replay of
+the original run, and it was trained for 15 epochs with no additional
+hyperparameter tuning. Recall (91%) is notably higher than precision (82%)
+here, meaning the model catches most true pneumonia cases at the cost of
+some false alarms on healthy X-rays -- a reasonable trade-off for a
+screening tool, though not tuned for it deliberately.

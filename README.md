@@ -100,6 +100,12 @@ pneumonia-xray-cnn/
 | Basic CNN | 90.13% |
 | ResNet-50 | 89.14% |
 
+*Table above: the original team's reported results (see [Project origin](#project-origin)).
+This repo's own reproduction of the Improved CNN, after fixing a validation-set
+issue described below, reached **81.89% accuracy / 86.26% F1** -- see
+[`docs/results.md`](docs/results.md#reproduced-results-this-repo) for the full
+breakdown and why an exact match to the historical number isn't expected.*
+
 See [`docs/results.md`](docs/results.md) for the full breakdown (precision,
 recall, F1, confusion matrices) and for the notes on bugs found and fixed
 while refactoring the original notebook into this package.
