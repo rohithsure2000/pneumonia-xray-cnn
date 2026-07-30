@@ -32,11 +32,9 @@ class Datasets:
 
 
 def _check_dataset_layout(config: TrainingConfig) -> None:
-    missing = [
-        str(d)
-        for d in (config.train_dir, config.val_dir, config.test_dir)
-        if not d.is_dir()
-    ]
+    # Note: val/ is deliberately not required here -- see build_generators()
+    # for why the official val/ folder isn't used for training decisions.
+    missing = [str(d) for d in (config.train_dir, config.test_dir) if not d.is_dir()]
     if not missing:
         return
 
@@ -64,6 +62,16 @@ def _check_dataset_layout(config: TrainingConfig) -> None:
 def build_generators(config: TrainingConfig) -> Datasets:
     """Build Keras data generators plus an in-memory test set.
 
+    The validation set is carved out of the *training* folder rather than
+    using the dataset's official ``val/`` folder, which contains only 16
+    images -- far too few to give EarlyStopping/ReduceLROnPlateau a stable
+    signal. In practice that tiny val set is a well-known issue with this
+    specific Kaggle dataset: it's easy to end up with EarlyStopping
+    restoring a checkpoint that just got lucky (or unlucky) on 16 images
+    rather than one that actually generalizes. The real, untouched
+    ``test/`` folder is unaffected by this and remains the only thing used
+    for final reported metrics.
+
     The test set is also loaded fully into memory (as numpy arrays) because
     evaluation needs a fixed, non-shuffled ordering to compute a confusion
     matrix -- the same approach the original notebook used.
@@ -77,13 +85,19 @@ def build_generators(config: TrainingConfig) -> Datasets:
 
     _check_dataset_layout(config)
 
+    # Two separate generators (rather than one shared instance) so training
+    # images get augmented but the held-out validation slice doesn't --
+    # both use the same validation_split and unshuffled file ordering, so
+    # `subset="training"` / `subset="validation"` stay non-overlapping.
     train_datagen = ImageDataGenerator(
         rescale=1.0 / 255,
         rotation_range=config.rotation_range,
         zoom_range=config.zoom_range,
         horizontal_flip=config.horizontal_flip,
         vertical_flip=config.vertical_flip,
+        validation_split=config.validation_split,
     )
+    val_datagen = ImageDataGenerator(rescale=1.0 / 255, validation_split=config.validation_split)
     eval_datagen = ImageDataGenerator(rescale=1.0 / 255)
 
     train_generator = train_datagen.flow_from_directory(
@@ -91,15 +105,18 @@ def build_generators(config: TrainingConfig) -> Datasets:
         target_size=config.image_size,
         batch_size=config.batch_size,
         class_mode="binary",
+        subset="training",
         shuffle=True,
         seed=config.seed,
     )
-    val_generator = eval_datagen.flow_from_directory(
-        directory=str(config.val_dir),
+    val_generator = val_datagen.flow_from_directory(
+        directory=str(config.train_dir),
         target_size=config.image_size,
         batch_size=config.batch_size,
         class_mode="binary",
+        subset="validation",
         shuffle=False,
+        seed=config.seed,
     )
     test_generator = eval_datagen.flow_from_directory(
         directory=str(config.test_dir),

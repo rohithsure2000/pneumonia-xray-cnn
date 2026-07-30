@@ -31,6 +31,13 @@ class TrainingConfig:
             part of why re-running it produces slightly different numbers
             each time -- fixing it here is a deliberate improvement.
         output_dir: Where checkpoints, logs, and evaluation reports land.
+        validation_split: Fraction of the *training* folder held out for
+            validation during training (used for EarlyStopping /
+            ReduceLROnPlateau / checkpoint selection). The dataset's own
+            official ``val/`` folder contains only 16 images -- far too few
+            for a stable signal -- so it's intentionally not used here.
+            The real, untouched ``test/`` folder is still the only thing
+            used for the final reported accuracy/precision/recall/F1.
     """
 
     data_dir: Path = Path("data/chest_xray")
@@ -40,6 +47,7 @@ class TrainingConfig:
     learning_rate: float = 1e-3
     seed: int = 42
     output_dir: Path = Path("artifacts")
+    validation_split: float = 0.15
 
     # Data augmentation, applied to the training split only.
     rotation_range: int = 30
