@@ -37,13 +37,28 @@ def _check_dataset_layout(config: TrainingConfig) -> None:
         for d in (config.train_dir, config.val_dir, config.test_dir)
         if not d.is_dir()
     ]
-    if missing:
-        raise FileNotFoundError(
-            "Expected a 'chest_xray' style dataset with train/val/test "
-            f"folders, but could not find: {', '.join(missing)}. "
-            "See the README's 'Getting the data' section for download "
-            "instructions."
+    if not missing:
+        return
+
+    # A common gotcha: manually downloading/extracting the Kaggle archive
+    # leaves an extra nested folder, e.g. data/chest_xray/chest_xray/train
+    # instead of data/chest_xray/train. Point directly at the fix if we can.
+    nested = config.data_dir / "chest_xray"
+    hint = ""
+    if (nested / "train").is_dir():
+        hint = (
+            f" It looks like the data is nested one level deeper, at {nested} -- "
+            "this happens when the Kaggle archive is extracted manually, since it "
+            "contains an extra 'chest_xray' folder inside itself. Move everything "
+            f"from inside {nested} up into {config.data_dir}, or pass "
+            f"--data-dir {nested} instead."
         )
+
+    raise FileNotFoundError(
+        "Expected a 'chest_xray' style dataset with train/val/test "
+        f"folders, but could not find: {', '.join(missing)}.{hint} "
+        "See the README's 'Getting the data' section for download instructions."
+    )
 
 
 def build_generators(config: TrainingConfig) -> Datasets:
