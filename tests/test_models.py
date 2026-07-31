@@ -1,10 +1,5 @@
-"""Shape/sanity tests for every architecture in the model registry.
-
-These tests deliberately pass ``weights=None`` (or omit it, for the two
-from-scratch CNNs) so they build architectures without downloading
-ImageNet weights -- that keeps CI fast and network-independent while still
-catching shape bugs, typos in layer configs, and the VGG16/VGG19 mix-up
-that existed in the original notebook.
+"""Shape/sanity tests for every architecture in the registry. weights=None
+skips the ImageNet download so these run fast with no network access.
 """
 
 from __future__ import annotations
@@ -27,10 +22,8 @@ def test_build_model_returns_binary_classifier(name):
 
 
 def test_vgg16_and_vgg19_have_different_architectures():
-    """Regression test for the original notebook's copy-paste bug, where
-    the VGG-19 model was accidentally built on the VGG-16 base model.
-    """
-
+    # Regression test: VGG-19 used to get built on the VGG-16 base model
+    # by mistake (copy-paste bug in the original notebook).
     vgg16 = build_model("vgg16", INPUT_SHAPE, weights=None)
     vgg19 = build_model("vgg19", INPUT_SHAPE, weights=None)
 
@@ -39,13 +32,8 @@ def test_vgg16_and_vgg19_have_different_architectures():
 
 
 def test_improved_cnn_matches_reported_architecture():
-    """Regression test tying the Improved CNN to the project report's own
-    model-summary table (896 + 128 + ... + 129 = 1,246,977 total params),
-    verified independently against the standard Conv2D/BatchNorm parameter
-    formulas. Guards against silently drifting back to a different
-    architecture under the same name.
-    """
-
+    # Ties this to the project report's model-summary table (1,246,977
+    # params) so it can't silently drift to a different architecture.
     model = build_model("improved", INPUT_SHAPE)
 
     assert model.count_params() == 1_246_977

@@ -17,9 +17,8 @@ unzip -q chest-xray-pneumonia.zip
 rm chest-xray-pneumonia.zip
 rm -rf __MACOSX
 
-# The Kaggle archive nests an extra chest_xray/ folder inside itself
-# (you end up with chest_xray/chest_xray/train instead of chest_xray/train).
-# Flatten it so the layout always matches what the code expects.
+# The Kaggle archive nests an extra chest_xray/ folder inside itself --
+# flatten it so the layout always matches what the code expects.
 if [ -d "chest_xray/chest_xray" ]; then
   echo "Flattening the archive's extra nested chest_xray/ folder..."
   mv chest_xray/chest_xray/* chest_xray/

@@ -1,44 +1,19 @@
-"""CNN architectures compared in this project.
+"""The 5 CNN architectures compared in this project: basic CNN, improved
+CNN (BatchNorm + Dropout), VGG-16, VGG-19, ResNet-50.
 
-Five architectures are implemented, matching the project report's own
-comparison: a basic CNN, an "Improved CNN" (BatchNorm + Dropout), and
-three transfer-learning models (VGG-16, VGG-19, ResNet-50).
+A few things were fixed here relative to the original notebook (details in
+docs/results.md):
+- Improved CNN now matches the project report's architecture exactly. An
+  earlier version of this used a different, deeper network by mistake.
+- VGG-19 builds its own base model instead of reusing VGG-16's, which was
+  a copy-paste bug in the original.
+- Backbones freeze consistently via `base_model.trainable = False`,
+  instead of "freeze the first 20 layers," which silently didn't scale to
+  ResNet-50 (~175 layers vs. VGG's ~19).
 
-Three correctness fixes relative to the original exploratory notebook are
-worth calling out explicitly, since they change what "Improved CNN" and
-"VGG-19" actually mean here:
-
-1. **"Improved CNN" was rebuilt to match the project report, not an
-   unrelated experiment.** An earlier version of this module implemented a
-   deeper SeparableConv2D architecture under this name. That network does
-   exist in the original notebook, but as an unlabeled second experiment
-   (never part of the report's five compared architectures) -- using it
-   here was a mismatch with the source material. ``build_improved_cnn``
-   now matches the report's own model-summary table param-for-param.
-2. **VGG-19 was accidentally built on the VGG-16 backbone.** The original
-   notebook instantiated a ``VGG19`` base model but then built the
-   classification head on top of the *previous* ``VGG16`` variable by
-   mistake, so the two "different" transfer-learning models were actually
-   identical networks with independently-initialized dense heads. This
-   module builds each backbone from its own base model.
-3. **Partial layer-freezing didn't scale across backbones.** The notebook
-   froze "the first 20 layers" for every transfer-learning model. VGG-16
-   only has ~19 layers, so that happened to freeze the whole backbone --
-   but ResNet-50 has ~175 layers, so freezing just 20 left the vast
-   majority of it trainable, which is closer to full fine-tuning than
-   feature extraction. Here every backbone freezes consistently
-   (``base_model.trainable = False``) unless the caller asks to fine-tune.
-
-All builder functions share the signature
-``build_x(input_shape, weights="imagenet") -> keras.Model`` so they can be
-swapped in and out from a single registry (see ``MODEL_REGISTRY`` below).
-Passing ``weights=None`` skips the ImageNet download entirely, which is
-what the unit tests use to check output shapes without any network access.
-
-TensorFlow is imported lazily inside each function (rather than at module
-level) so that ``import pneumonia_cnn`` and ``MODEL_REGISTRY`` lookups work
-even in environments that only need the CLI's ``--help`` output or the
-config/metrics helpers, without requiring TensorFlow to be installed.
+`weights=None` skips the ImageNet download -- used by the tests so they
+don't need network access. TensorFlow is imported inside each function so
+this module (and MODEL_REGISTRY) can be imported without TF installed.
 """
 
 from __future__ import annotations
@@ -47,11 +22,7 @@ from typing import Any, Callable, Dict, Tuple
 
 
 def build_basic_cnn(input_shape: Tuple[int, int, int], weights: "str | None" = None) -> Any:
-    """A plain 5-block Conv2D/MaxPool stack with no regularization.
-
-    This is the "Basic CNN" baseline: it trains fast and establishes a
-    lower bound for what the more sophisticated architectures need to beat.
-    """
+    """5-block Conv2D/MaxPool stack, no regularization. Baseline model."""
 
     del weights  # unused; kept for a uniform builder signature
     from tensorflow import keras
@@ -70,21 +41,9 @@ def build_basic_cnn(input_shape: Tuple[int, int, int], weights: "str | None" = N
 
 
 def build_improved_cnn(input_shape: Tuple[int, int, int], weights: "str | None" = None) -> Any:
-    """The "Improved CNN" as actually defined and reported in the project.
-
-    Five Conv2D blocks (32/64/64/128/256 filters), each followed by
-    BatchNormalization, with Dropout inserted after the 2nd, 4th, and 5th
-    blocks and once more after the dense layer -- 5 BatchNormalization and
-    4 Dropout layers total, matching the project report's own description
-    ("we added 5 Batch Normalization and 4 Dropout layers") and its
-    model-summary table param-for-param (1,246,977 total parameters).
-
-    This replaces an earlier version of this function that implemented a
-    different, deeper SeparableConv2D architecture. That architecture does
-    exist in the original exploratory notebook, but as an unlabeled second
-    experiment -- it was never one of the report's five compared
-    architectures, so using it here under the name "Improved CNN" was a
-    mismatch with the source material worth correcting.
+    """Same 5 Conv2D blocks as the basic CNN, plus BatchNorm after each
+    block and Dropout after 3 of them. Matches the project report's
+    architecture param-for-param (1,246,977 total).
     """
 
     del weights
@@ -186,11 +145,7 @@ MODEL_REGISTRY: Dict[str, Callable[..., Any]] = {
 
 
 def build_model(name: str, input_shape: Tuple[int, int, int], **kwargs) -> Any:
-    """Look up and construct a model by its registry name.
-
-    Raises:
-        KeyError: if ``name`` isn't one of ``MODEL_REGISTRY``.
-    """
+    """Build a model by its registry name. Raises KeyError if unknown."""
 
     try:
         builder = MODEL_REGISTRY[name]

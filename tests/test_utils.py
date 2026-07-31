@@ -1,9 +1,6 @@
-"""Tests for metric computation.
-
-The confusion-matrix numbers below are taken directly from the Basic CNN
-evaluation cell in the original exploratory notebook ([[190, 44], [4, 386]])
-so this test doubles as a regression check that ``compute_metrics`` matches
-numbers we already know are correct by hand.
+"""Tests for metric computation. The confusion matrix in the first test
+is from the Basic CNN's evaluation in the original notebook
+([[190, 44], [4, 386]]) -- doubles as a check against known-good numbers.
 """
 
 from __future__ import annotations

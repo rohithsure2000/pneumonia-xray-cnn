@@ -15,12 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def set_seed(seed: int) -> None:
-    """Seed python/numpy/tensorflow RNGs for a reproducible run.
-
-    The original notebook never fixed a seed, which is one reason its
-    results shift a little between runs. Reproducibility is worth the two
-    extra lines.
-    """
+    """Seed python/numpy/tensorflow RNGs for a reproducible run."""
 
     random.seed(seed)
     np.random.seed(seed)
@@ -34,11 +29,7 @@ def set_seed(seed: int) -> None:
 
 @dataclass
 class ClassificationMetrics:
-    """Confusion-matrix-derived metrics for a binary classifier.
-
-    All fields are plain floats/ints so the dataclass round-trips cleanly
-    through ``json.dumps``.
-    """
+    """Confusion-matrix-derived metrics for a binary classifier."""
 
     true_negatives: int
     false_positives: int
@@ -58,10 +49,8 @@ class ClassificationMetrics:
 
 
 def compute_metrics(y_true: np.ndarray, y_pred_proba: np.ndarray) -> ClassificationMetrics:
-    """Compute accuracy/precision/recall/F1 from predicted probabilities.
-
-    ``y_pred_proba`` is rounded to a hard 0/1 label at the standard 0.5
-    threshold, matching how the original notebook evaluated each model.
+    """Accuracy/precision/recall/F1 from predicted probabilities, rounded
+    to a hard 0/1 label at the standard 0.5 threshold.
     """
 
     from sklearn.metrics import confusion_matrix

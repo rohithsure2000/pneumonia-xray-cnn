@@ -1,8 +1,6 @@
-"""Central configuration for the pneumonia CNN project.
-
-Keeping every tunable value in one dataclass makes it trivial to reproduce
-a run (just print the config) and to override values from the command
-line without threading a dozen function arguments through the codebase.
+"""Central config for the project. One dataclass instead of threading a
+dozen args through every script, and makes a run trivial to reproduce
+(just print the config).
 """
 
 from __future__ import annotations
@@ -14,30 +12,17 @@ from typing import Tuple
 
 @dataclass
 class TrainingConfig:
-    """Hyperparameters and paths shared by every training/eval script.
+    """Hyperparameters and paths shared by the training/eval scripts.
 
-    Attributes:
-        data_dir: Root of the extracted ``chest_xray`` Kaggle dataset. Must
-            contain ``train/``, ``val/`` and ``test/`` sub-directories, each
-            with ``NORMAL/`` and ``PNEUMONIA/`` class folders.
-        image_size: Height/width the images are resized to before being fed
-            to a model. 150x150 matches the original experiments; 224x224
-            is a common choice if you swap in a different backbone.
-        batch_size: Mini-batch size used for both training and evaluation.
-        epochs: Number of passes over the training set.
-        learning_rate: Initial learning rate for the Adam optimizer.
-        seed: Random seed applied to numpy/tensorflow for reproducibility.
-            The original exploratory notebook did not fix a seed, which is
-            part of why re-running it produces slightly different numbers
-            each time -- fixing it here is a deliberate improvement.
-        output_dir: Where checkpoints, logs, and evaluation reports land.
-        validation_split: Fraction of the *training* folder held out for
-            validation during training (used for EarlyStopping /
-            ReduceLROnPlateau / checkpoint selection). The dataset's own
-            official ``val/`` folder contains only 16 images -- far too few
-            for a stable signal -- so it's intentionally not used here.
-            The real, untouched ``test/`` folder is still the only thing
-            used for the final reported accuracy/precision/recall/F1.
+    data_dir needs train/, val/, test/ subfolders, each with NORMAL/ and
+    PNEUMONIA/ class folders (val/ is unused -- see validation_split).
+
+    validation_split carves validation out of the *training* folder instead
+    of using the dataset's own val/, which only has 16 images -- too few
+    for EarlyStopping to get a stable signal from. test/ is untouched and
+    is what final accuracy/precision/recall/F1 are based on.
+
+    seed fixes numpy/tensorflow randomness for reproducibility.
     """
 
     data_dir: Path = Path("data/chest_xray")

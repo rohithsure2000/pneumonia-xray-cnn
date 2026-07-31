@@ -1,9 +1,6 @@
-"""Data loading and augmentation utilities.
-
-This mirrors the generators used in the original exploratory notebook
-(``ImageDataGenerator`` with rotation/zoom/flip augmentation on the training
-split only) but wraps them behind a typed, testable interface instead of
-inline notebook cells.
+"""Data loading and augmentation, built on Keras's ImageDataGenerator --
+same approach as the original notebook, wrapped behind a typed, testable
+interface instead of inline notebook cells.
 """
 
 from __future__ import annotations
@@ -22,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Datasets:
-    """Container for everything a training/evaluation run needs."""
+    """Everything a training/evaluation run needs."""
 
     train_generator: "object"
     val_generator: "object"
@@ -32,49 +29,38 @@ class Datasets:
 
 
 def _check_dataset_layout(config: TrainingConfig) -> None:
-    # Note: val/ is deliberately not required here -- see build_generators()
-    # for why the official val/ folder isn't used for training decisions.
+    # val/ is deliberately not required -- see build_generators() for why.
     missing = [str(d) for d in (config.train_dir, config.test_dir) if not d.is_dir()]
     if not missing:
         return
 
-    # A common gotcha: manually downloading/extracting the Kaggle archive
-    # leaves an extra nested folder, e.g. data/chest_xray/chest_xray/train
-    # instead of data/chest_xray/train. Point directly at the fix if we can.
+    # The Kaggle archive nests an extra chest_xray/ folder inside itself,
+    # so this is worth checking for directly rather than a generic error.
     nested = config.data_dir / "chest_xray"
     hint = ""
     if (nested / "train").is_dir():
         hint = (
-            f" It looks like the data is nested one level deeper, at {nested} -- "
-            "this happens when the Kaggle archive is extracted manually, since it "
-            "contains an extra 'chest_xray' folder inside itself. Move everything "
-            f"from inside {nested} up into {config.data_dir}, or pass "
-            f"--data-dir {nested} instead."
+            f" Found train/ one level deeper at {nested} -- move its "
+            f"contents up into {config.data_dir}, or pass --data-dir {nested}."
         )
 
     raise FileNotFoundError(
         "Expected a 'chest_xray' style dataset with train/val/test "
         f"folders, but could not find: {', '.join(missing)}.{hint} "
-        "See the README's 'Getting the data' section for download instructions."
+        "See the README's 'Getting the data' section."
     )
 
 
 def build_generators(config: TrainingConfig) -> Datasets:
     """Build Keras data generators plus an in-memory test set.
 
-    The validation set is carved out of the *training* folder rather than
-    using the dataset's official ``val/`` folder, which contains only 16
-    images -- far too few to give EarlyStopping/ReduceLROnPlateau a stable
-    signal. In practice that tiny val set is a well-known issue with this
-    specific Kaggle dataset: it's easy to end up with EarlyStopping
-    restoring a checkpoint that just got lucky (or unlucky) on 16 images
-    rather than one that actually generalizes. The real, untouched
-    ``test/`` folder is unaffected by this and remains the only thing used
-    for final reported metrics.
+    Validation comes from a split of the *training* folder rather than the
+    dataset's official val/ folder, which only has 16 images -- too few for
+    EarlyStopping/ReduceLROnPlateau to get a stable signal from. test/ is
+    untouched by this and is what the reported metrics are based on.
 
-    The test set is also loaded fully into memory (as numpy arrays) because
-    evaluation needs a fixed, non-shuffled ordering to compute a confusion
-    matrix -- the same approach the original notebook used.
+    The test set is also loaded into memory as numpy arrays, since
+    computing a confusion matrix needs a fixed, non-shuffled ordering.
     """
 
     # Imported lazily so `pneumonia_cnn.models` (and anything that only
@@ -85,10 +71,9 @@ def build_generators(config: TrainingConfig) -> Datasets:
 
     _check_dataset_layout(config)
 
-    # Two separate generators (rather than one shared instance) so training
-    # images get augmented but the held-out validation slice doesn't --
-    # both use the same validation_split and unshuffled file ordering, so
-    # `subset="training"` / `subset="validation"` stay non-overlapping.
+    # Separate generators so the training split gets augmented but the
+    # held-out validation slice doesn't -- both use the same split/seed so
+    # subset="training"/"validation" stay non-overlapping.
     train_datagen = ImageDataGenerator(
         rescale=1.0 / 255,
         rotation_range=config.rotation_range,
@@ -138,11 +123,11 @@ def build_generators(config: TrainingConfig) -> Datasets:
 
 
 def _load_test_arrays(config: TrainingConfig, cv2) -> Tuple[np.ndarray, np.ndarray]:
-    """Load every test image into a single numpy array for evaluation.
+    """Load every test image into memory for evaluation.
 
-    Kept as a separate, mockable function so unit tests can exercise the
-    resizing/normalization logic on a couple of synthetic images without
-    needing the real dataset on disk.
+    Split out from build_generators() so tests can exercise the resize/
+    normalize logic on a couple of synthetic images without the real
+    dataset on disk.
     """
 
     images, labels = [], []
@@ -162,7 +147,7 @@ def _load_test_arrays(config: TrainingConfig, cv2) -> Tuple[np.ndarray, np.ndarr
 
 
 def preprocess_single_image(path: Path, config: TrainingConfig, cv2) -> np.ndarray:
-    """Load and preprocess one image for inference (see ``predict.py``)."""
+    """Load and preprocess one image for inference (see predict.py)."""
 
     image = cv2.imread(str(path))
     if image is None:

@@ -9,29 +9,26 @@
 A comparison of five CNN architectures -- a from-scratch basic CNN, a
 regularized "improved" CNN, and three ImageNet transfer-learning backbones
 (VGG-16, VGG-19, ResNet-50) -- for classifying pediatric chest X-rays as
-`NORMAL` or `PNEUMONIA`. This repository turns the original exploratory
-notebook into a modular, tested, and reproducible Python package with a
-CLI for training, evaluation, and single-image inference.
+`NORMAL` or `PNEUMONIA`. Modular, tested Python package with a CLI for
+training, evaluation, and single-image inference.
 
 ## Project origin
 
-This project began as a team assignment for **BIA 678 (Big Data
-Technologies)** at Stevens Institute of Technology, built collaboratively
-with a team of five as coursework. This repository is my individual
-follow-up: I took our team's exploratory Colab notebook and rebuilt it as
-a proper package -- modular architecture definitions, a typed config
-object, a real test suite, Docker support, and CI -- while fixing a couple
-of correctness bugs I found in the original notebook along the way (see
-[`docs/results.md`](docs/results.md) for details). The reported results
-table in that doc is our team's original result; this codebase is a
-distinct, corrected reimplementation of the same experiment, not a replay
-of it.
+This started as a team assignment for **BIA 678 (Big Data Technologies)**
+at Stevens Institute of Technology, built with a team of five. This repo
+is my individual follow-up: I rebuilt our exploratory notebook into a
+proper package (modular code, tests, Docker, CI) and fixed a few
+correctness bugs I found along the way (see
+[`docs/results.md`](docs/results.md)). The results table below is the
+team's original; this codebase is a distinct, corrected reimplementation
+of that experiment, not a replay of it.
 
 ## Table of contents
 
 - [Overview](#overview)
 - [Repository structure](#repository-structure)
 - [Results](#results)
+- [Example predictions](#example-predictions)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Getting the data](#getting-the-data)
@@ -44,22 +41,22 @@ of it.
 ## Overview
 
 Chest X-ray interpretation for pediatric pneumonia normally requires an
-expert radiologist. This project explores how far a CNN trained on a
+expert radiologist. This project looks at how far a CNN trained on a
 public, physician-labeled dataset can go toward automating that first
-read, and compares a small custom architecture against transfer learning
-from three well-known ImageNet backbones.
+read, comparing a small custom architecture against transfer learning
+from three ImageNet backbones.
 
 **Dataset:** [Chest X-Ray Images (Pneumonia)](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia)
 -- 5,863 anterior-posterior X-rays from pediatric patients (ages 1-5) at
 Guangzhou Women and Children's Medical Center, each graded by two expert
-physicians (with a third expert re-checking the evaluation set), split
-into `train`/`val`/`test` folders of `NORMAL`/`PNEUMONIA` images.
+physicians (a third re-checked the evaluation set), split into
+`train`/`val`/`test` folders of `NORMAL`/`PNEUMONIA` images.
 
 **Approach:**
 1. Address the training set's class imbalance (1,342 `NORMAL` vs. 3,876
    `PNEUMONIA`) with on-the-fly augmentation: random rotation, zoom, and
    horizontal/vertical flips.
-2. Train and evaluate five architectures under a shared pipeline so their
+2. Train and evaluate five architectures under a shared pipeline so
    results are directly comparable.
 3. Evaluate every model on a held-out test set with accuracy, precision,
    recall, F1, and a confusion matrix.
@@ -69,21 +66,21 @@ into `train`/`val`/`test` folders of `NORMAL`/`PNEUMONIA` images.
 ```
 pneumonia-xray-cnn/
 ├── src/pneumonia_cnn/
-│   ├── config.py       # TrainingConfig dataclass -- one place for every hyperparameter
-│   ├── data.py         # Data generators, augmentation, test-set loading
-│   ├── models.py        # All 5 architectures behind a MODEL_REGISTRY
-│   ├── train.py         # CLI: train a model end-to-end
-│   ├── evaluate.py      # CLI: evaluate a saved model on the test set
-│   ├── predict.py       # CLI: run inference on a single image
-│   └── utils.py          # Metrics, seeding, plotting helpers
-├── tests/                 # pytest unit tests (no dataset/network required)
-├── notebooks/run_in_colab.ipynb  # Clone -> install -> train -> visualize, on a free GPU
+│   ├── config.py     # TrainingConfig dataclass -- every hyperparameter in one place
+│   ├── data.py       # Data generators, augmentation, test-set loading
+│   ├── models.py     # All 5 architectures behind a MODEL_REGISTRY
+│   ├── train.py      # CLI: train a model end-to-end
+│   ├── evaluate.py   # CLI: evaluate a saved model on the test set
+│   ├── predict.py    # CLI: run inference on a single image
+│   └── utils.py      # Metrics, seeding, plotting helpers
+├── tests/                          # pytest, no dataset/network required
+├── notebooks/run_in_colab.ipynb    # Clone -> install -> train -> visualize, on a free GPU
 ├── scripts/
 │   ├── download_data.sh
-│   └── visualize_predictions.py  # Builds the example-predictions grid for the README
+│   └── visualize_predictions.py    # Builds the example-predictions grid below
 ├── docs/
-│   ├── results.md          # Full results table + methodology notes
-│   └── assets/               # Training curves / example predictions (generated)
+│   ├── results.md    # Full results table + methodology notes
+│   └── assets/       # Training curves / example predictions (generated)
 ├── .github/workflows/ci.yml
 ├── Dockerfile
 ├── requirements.txt / requirements-dev.txt
@@ -107,30 +104,16 @@ model-summary table exactly (1,246,977 parameters) -- see
 [`docs/results.md`](docs/results.md#reproduced-results-this-repo) for the
 full breakdown.*
 
-See [`docs/results.md`](docs/results.md) for the full breakdown (precision,
-recall, F1, confusion matrices) and for the notes on bugs found and fixed
-while refactoring the original notebook into this package.
+See [`docs/results.md`](docs/results.md) for precision/recall/F1,
+confusion matrices, and notes on the bugs found and fixed while
+refactoring the original notebook.
 
 ## Example predictions
 
-<!--
-Generated by scripts/visualize_predictions.py -- run notebooks/run_in_colab.ipynb
-(or the script directly after training a model) and commit the output here.
--->
+<!-- Generated by scripts/visualize_predictions.py -->
 ![Example test-set predictions](docs/assets/example_predictions.png)
 
 ![Training curves](docs/assets/training_curves.png)
-
-## Reproduce the results
-
-The fastest way to run this end-to-end, including on a free GPU, is the
-included Colab notebook:
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rohithsure2000/pneumonia-xray-cnn/blob/main/notebooks/run_in_colab.ipynb)
-
-It clones this repo, installs dependencies, downloads the dataset from
-Kaggle, trains a model, and generates the plots above. See
-[Installation](#installation) below to run the same steps locally instead.
 
 ## Prerequisites
 
@@ -140,6 +123,12 @@ Kaggle, trains a model, and generates the plots above. See
   models in particular are slow on CPU
 
 ## Installation
+
+Quickest way to run this end-to-end, including on a free GPU, is the
+included notebook:
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/rohithsure2000/pneumonia-xray-cnn/blob/main/notebooks/run_in_colab.ipynb)
+
+For a local setup instead:
 
 ```bash
 git clone https://github.com/rohithsure2000/pneumonia-xray-cnn.git
@@ -152,8 +141,6 @@ pip install -e .
 
 ## Getting the data
 
-**Option A -- Kaggle API (used by the Colab notebook):**
-
 1. Create a Kaggle API token: Kaggle account settings → "Create New
    Token" → downloads `kaggle.json`.
 2. Place it at `~/.kaggle/kaggle.json` (`%USERPROFILE%\.kaggle\kaggle.json`
@@ -164,20 +151,7 @@ pip install -e .
    ./scripts/download_data.sh data
    ```
 
-**Option B -- download it by hand (simpler for local/CPU training):**
-
-1. Open the [dataset page](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia)
-   (sign-in required) and click **Download** (~1.2 GB).
-2. Extract the zip into your repo's `data/` folder.
-3. ⚠️ **Check the folder depth.** The archive contains an extra nested
-   `chest_xray` folder, so a manual extract often lands as
-   `data/chest_xray/chest_xray/train` instead of `data/chest_xray/train`.
-   If so, move everything out of the inner `chest_xray` folder up one
-   level (or pass `--data-dir data/chest_xray/chest_xray` to the CLI
-   scripts instead). Either way, you want `NORMAL/` and `PNEUMONIA/`
-   folders to end up directly inside `train/`, `val/`, and `test/`.
-
-Both options leave you with:
+This downloads and extracts the dataset to:
 
 ```
 data/chest_xray/
@@ -186,15 +160,13 @@ data/chest_xray/
 └── test/{NORMAL,PNEUMONIA}/
 ```
 
-If the folders don't line up, `train.py` will raise a `FileNotFoundError`
-telling you exactly which path it expected and, if it can detect the
-nested-folder case above, exactly how to fix it.
+If that layout doesn't match, `train.py` raises a `FileNotFoundError`
+telling you exactly which path it expected.
 
-**A note on speed:** training locally without a GPU works but is slow,
-especially for the VGG/ResNet transfer-learning models. If your machine
-doesn't have one, either use the Colab notebook (free GPU) or start with
-`--model basic --epochs 3` locally just to confirm everything runs before
-committing to a longer run.
+Training locally without a GPU works but is slow, especially for the
+VGG/ResNet models. Either use the Colab notebook, or start with
+`--model basic --epochs 3` to confirm everything runs before committing
+to a longer run.
 
 ## Usage
 
@@ -231,7 +203,7 @@ python -m pneumonia_cnn.predict \
     --image path/to/xray.jpeg
 ```
 
-**Generate the example-predictions grid (used in the README above):**
+**Generate the example-predictions grid (used above):**
 
 ```bash
 python scripts/visualize_predictions.py \
@@ -242,10 +214,9 @@ python scripts/visualize_predictions.py \
 
 ## Testing
 
-The test suite covers the model registry, config, and metrics logic and
-does **not** require the dataset or a GPU -- it builds every architecture
-with `weights=None` to skip the ImageNet download entirely, so it runs
-quickly in CI.
+Covers the model registry, config, and metrics logic. Doesn't need the
+dataset or a GPU -- builds every architecture with `weights=None` to skip
+the ImageNet download, so it runs fast in CI.
 
 ```bash
 pip install -r requirements-dev.txt
@@ -265,14 +236,14 @@ docker run --rm \
 ## Limitations & future work
 
 - Results reflect a single training run per architecture at 10-15 epochs;
-  a k-fold cross-validation setup would give more reliable comparisons.
-- The transfer-learning models freeze their entire backbone by default
-  (`--fine-tune` opts into full fine-tuning) -- a partial, gradual unfreeze
+  k-fold cross-validation would give more reliable comparisons.
+- Transfer-learning models freeze their entire backbone by default
+  (`--fine-tune` opts into full fine-tuning) -- a gradual unfreeze
   schedule would likely close some of the gap with the custom CNN.
-- No Grad-CAM or other interpretability output yet, which matters for a
+- No Grad-CAM or other interpretability output, which matters for a
   medical-imaging use case where a clinician would want to see *why* a
   model flagged an image.
-- No inference API/web demo -- the CLI is script-only for now.
+- No inference API/web demo -- CLI only, for now.
 
 ## License
 
