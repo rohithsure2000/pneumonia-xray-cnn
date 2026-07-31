@@ -38,6 +38,23 @@ def test_vgg16_and_vgg19_have_different_architectures():
     assert len(vgg16.layers) != len(vgg19.layers)
 
 
+def test_improved_cnn_matches_reported_architecture():
+    """Regression test tying the Improved CNN to the project report's own
+    model-summary table (896 + 128 + ... + 129 = 1,246,977 total params),
+    verified independently against the standard Conv2D/BatchNorm parameter
+    formulas. Guards against silently drifting back to a different
+    architecture under the same name.
+    """
+
+    model = build_model("improved", INPUT_SHAPE)
+
+    assert model.count_params() == 1_246_977
+    batch_norm_layers = [layer for layer in model.layers if "batch_normalization" in layer.name]
+    dropout_layers = [layer for layer in model.layers if "dropout" in layer.name]
+    assert len(batch_norm_layers) == 5
+    assert len(dropout_layers) == 4
+
+
 def test_transfer_models_freeze_backbone_by_default():
     vgg16 = build_model("vgg16", INPUT_SHAPE, weights=None, fine_tune=False)
     # Every layer except the final Dense head should be non-trainable.

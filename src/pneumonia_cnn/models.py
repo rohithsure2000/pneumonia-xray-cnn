@@ -1,20 +1,27 @@
 """CNN architectures compared in this project.
 
-Five architectures are implemented, matching the comparison described in
-the project write-up: a basic CNN, a more heavily regularized "improved"
-CNN, and three transfer-learning models (VGG-16, VGG-19, ResNet-50).
+Five architectures are implemented, matching the project report's own
+comparison: a basic CNN, an "Improved CNN" (BatchNorm + Dropout), and
+three transfer-learning models (VGG-16, VGG-19, ResNet-50).
 
-Two correctness fixes relative to the original exploratory notebook are
-worth calling out explicitly, since they change what "VGG-19" and
-"Improved CNN" actually mean:
+Three correctness fixes relative to the original exploratory notebook are
+worth calling out explicitly, since they change what "Improved CNN" and
+"VGG-19" actually mean here:
 
-1. **VGG-19 was accidentally built on the VGG-16 backbone.** The original
+1. **"Improved CNN" was rebuilt to match the project report, not an
+   unrelated experiment.** An earlier version of this module implemented a
+   deeper SeparableConv2D architecture under this name. That network does
+   exist in the original notebook, but as an unlabeled second experiment
+   (never part of the report's five compared architectures) -- using it
+   here was a mismatch with the source material. ``build_improved_cnn``
+   now matches the report's own model-summary table param-for-param.
+2. **VGG-19 was accidentally built on the VGG-16 backbone.** The original
    notebook instantiated a ``VGG19`` base model but then built the
    classification head on top of the *previous* ``VGG16`` variable by
    mistake, so the two "different" transfer-learning models were actually
    identical networks with independently-initialized dense heads. This
    module builds each backbone from its own base model.
-2. **Partial layer-freezing didn't scale across backbones.** The notebook
+3. **Partial layer-freezing didn't scale across backbones.** The notebook
    froze "the first 20 layers" for every transfer-learning model. VGG-16
    only has ~19 layers, so that happened to freeze the whole backbone --
    but ResNet-50 has ~175 layers, so freezing just 20 left the vast
@@ -63,41 +70,58 @@ def build_basic_cnn(input_shape: Tuple[int, int, int], weights: "str | None" = N
 
 
 def build_improved_cnn(input_shape: Tuple[int, int, int], weights: "str | None" = None) -> Any:
-    """A deeper, regularized CNN using separable convolutions.
+    """The "Improved CNN" as actually defined and reported in the project.
 
-    Batch normalization and progressively increasing dropout are used to
-    fight overfitting, which the basic CNN is prone to given the modest
-    training set size and class imbalance.
+    Five Conv2D blocks (32/64/64/128/256 filters), each followed by
+    BatchNormalization, with Dropout inserted after the 2nd, 4th, and 5th
+    blocks and once more after the dense layer -- 5 BatchNormalization and
+    4 Dropout layers total, matching the project report's own description
+    ("we added 5 Batch Normalization and 4 Dropout layers") and its
+    model-summary table param-for-param (1,246,977 total parameters).
+
+    This replaces an earlier version of this function that implemented a
+    different, deeper SeparableConv2D architecture. That architecture does
+    exist in the original exploratory notebook, but as an unlabeled second
+    experiment -- it was never one of the report's five compared
+    architectures, so using it here under the name "Improved CNN" was a
+    mismatch with the source material worth correcting.
     """
 
     del weights
     from tensorflow import keras
     from tensorflow.keras import layers
 
-    inputs = keras.Input(shape=input_shape)
+    model = keras.Sequential(name="improved_cnn")
+    model.add(layers.Input(shape=input_shape))
 
-    x = layers.Conv2D(16, (3, 3), activation="relu", padding="same")(inputs)
-    x = layers.Conv2D(16, (3, 3), activation="relu", padding="same")(x)
-    x = layers.MaxPool2D((2, 2))(x)
+    model.add(layers.Conv2D(32, (3, 3), strides=1, padding="same", activation="relu"))
+    model.add(layers.BatchNormalization())
+    model.add(layers.MaxPool2D((2, 2), strides=2, padding="same"))
 
-    for filters in (32, 64, 128, 256):
-        x = layers.SeparableConv2D(filters, (3, 3), activation="relu", padding="same")(x)
-        x = layers.SeparableConv2D(filters, (3, 3), activation="relu", padding="same")(x)
-        x = layers.BatchNormalization()(x)
-        x = layers.MaxPool2D((2, 2))(x)
-        if filters >= 128:
-            x = layers.Dropout(0.5)(x)
+    model.add(layers.Conv2D(64, (3, 3), strides=1, padding="same", activation="relu"))
+    model.add(layers.Dropout(0.1))
+    model.add(layers.BatchNormalization())
+    model.add(layers.MaxPool2D((2, 2), strides=2, padding="same"))
 
-    x = layers.Flatten()(x)
-    x = layers.Dense(512, activation="relu")(x)
-    x = layers.Dropout(0.7)(x)
-    x = layers.Dense(128, activation="relu")(x)
-    x = layers.Dropout(0.5)(x)
-    x = layers.Dense(64, activation="relu")(x)
-    x = layers.Dropout(0.5)(x)
-    outputs = layers.Dense(1, activation="sigmoid")(x)
+    model.add(layers.Conv2D(64, (3, 3), strides=1, padding="same", activation="relu"))
+    model.add(layers.BatchNormalization())
+    model.add(layers.MaxPool2D((2, 2), strides=2, padding="same"))
 
-    return keras.Model(inputs, outputs, name="improved_cnn")
+    model.add(layers.Conv2D(128, (3, 3), strides=1, padding="same", activation="relu"))
+    model.add(layers.Dropout(0.2))
+    model.add(layers.BatchNormalization())
+    model.add(layers.MaxPool2D((2, 2), strides=2, padding="same"))
+
+    model.add(layers.Conv2D(256, (3, 3), strides=1, padding="same", activation="relu"))
+    model.add(layers.Dropout(0.2))
+    model.add(layers.BatchNormalization())
+    model.add(layers.MaxPool2D((2, 2), strides=2, padding="same"))
+
+    model.add(layers.Flatten())
+    model.add(layers.Dense(128, activation="relu"))
+    model.add(layers.Dropout(0.2))
+    model.add(layers.Dense(1, activation="sigmoid"))
+    return model
 
 
 def _build_transfer_model(

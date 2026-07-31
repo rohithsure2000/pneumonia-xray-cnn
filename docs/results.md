@@ -18,7 +18,7 @@ vertical flips) is used to reduce overfitting to the majority class.
 | Model | Description |
 | --- | --- |
 | Basic CNN | 5-block Conv2D + MaxPool stack, no regularization |
-| Improved CNN | Deeper separable-convolution network with batch norm and dropout |
+| Improved CNN | Same 5-block Conv2D stack + BatchNorm after every block and Dropout after 3 of them |
 | VGG-16 | ImageNet-pretrained backbone, frozen, custom classification head |
 | VGG-19 | ImageNet-pretrained backbone, frozen, custom classification head |
 | ResNet-50 | ImageNet-pretrained backbone, frozen, custom classification head |
@@ -48,6 +48,17 @@ Turning the original exploratory Colab notebook into this package surfaced
 a couple of correctness issues worth documenting rather than quietly
 papering over:
 
+- **"Improved CNN" initially implemented the wrong architecture.** The
+  project's PDF report (with full model-summary tables) wasn't available
+  when this repo's `improved_cnn` was first written, so it was built to
+  match a different, deeper SeparableConv2D network that also appears in
+  the exploratory notebook (as an unlabeled second experiment, `model2`)
+  but was never one of the report's five official architectures. Once the
+  actual report was available, `build_improved_cnn` was rewritten to match
+  it exactly -- verified param-for-param (1,246,977 total parameters)
+  against the report's own model-summary table. See the note on the
+  "Reproduced results" section below: the 81.89% result recorded there was
+  measured *before* this correction and needs to be re-run.
 - **VGG-19 was accidentally built on the VGG-16 backbone.** The notebook
   instantiated a `VGG19` base model but then built the classification head
   on top of the previously-defined `VGG16` variable by mistake, so the two
@@ -87,6 +98,13 @@ corrected implementation of the same experiment. The table is kept here as
 the historical result the team reported.
 
 ## Reproduced results (this repo)
+
+> ⚠️ **The numbers below were measured before the "Improved CNN"
+> architecture correction described above** -- they're for the old
+> SeparableConv2D network, not the report-matching architecture this repo
+> now builds under that name. Kept here for now as a record of the
+> validation-split fix working correctly; needs a fresh
+> `train.py --model improved` run to reflect the current architecture.
 
 Actual output of `train.py --model improved --epochs 15` in this repo,
 after the validation-split fix above (see `test_metrics.json`):
