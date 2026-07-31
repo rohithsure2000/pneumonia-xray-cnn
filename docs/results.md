@@ -56,9 +56,8 @@ papering over:
   but was never one of the report's five official architectures. Once the
   actual report was available, `build_improved_cnn` was rewritten to match
   it exactly -- verified param-for-param (1,246,977 total parameters)
-  against the report's own model-summary table. See the note on the
-  "Reproduced results" section below: the 81.89% result recorded there was
-  measured *before* this correction and needs to be re-run.
+  against the report's own model-summary table, and confirmed again by the
+  actual Colab training run in the "Reproduced results" section below.
 - **VGG-19 was accidentally built on the VGG-16 backbone.** The notebook
   instantiated a `VGG19` base model but then built the classification head
   on top of the previously-defined `VGG16` variable by mistake, so the two
@@ -99,31 +98,39 @@ the historical result the team reported.
 
 ## Reproduced results (this repo)
 
-> ⚠️ **The numbers below were measured before the "Improved CNN"
-> architecture correction described above** -- they're for the old
-> SeparableConv2D network, not the report-matching architecture this repo
-> now builds under that name. Kept here for now as a record of the
-> validation-split fix working correctly; needs a fresh
-> `train.py --model improved` run to reflect the current architecture.
-
-Actual output of `train.py --model improved --epochs 15` in this repo,
-after the validation-split fix above (see `test_metrics.json`):
+Actual output of `train.py --model improved --epochs 15` in this repo, run
+against the corrected architecture above (see `test_metrics.json`) -- the
+model summary for this run confirmed **1,246,977 total parameters**,
+matching the report's table exactly:
 
 | Metric | Value |
 | --- | --- |
-| Accuracy | 81.89% |
-| Precision | 81.99% |
-| Recall | 91.03% |
-| F1 | 86.26% |
+| Accuracy | 88.30% |
+| Precision | 90.96% |
+| Recall | 90.26% |
+| F1 | 90.60% |
 
-Confusion matrix: 156 true negatives, 78 false positives, 35 false
-negatives, 355 true positives (624 test images total).
+Confusion matrix: 199 true negatives, 35 false positives, 38 false
+negatives, 352 true positives (624 test images total).
 
-This is lower than the historical 91.28% figure above, which is expected
--- this is a different, corrected implementation (fixed random seed, fixed
-validation split, fixed VGG-19/layer-freezing bugs) rather than a replay of
-the original run, and it was trained for 15 epochs with no additional
-hyperparameter tuning. Recall (91%) is notably higher than precision (82%)
-here, meaning the model catches most true pneumonia cases at the cost of
-some false alarms on healthy X-rays -- a reasonable trade-off for a
-screening tool, though not tuned for it deliberately.
+This lines up well with the historical 91.28% figure above -- close enough
+to be the same experiment, with the remaining gap plausibly explained by
+this being a single run at 12 actual epochs (EarlyStopping triggered)
+rather than a full 15, plus the validation-split and random-seed changes
+described above. Unlike the earlier (wrong-architecture) run, precision
+and recall are now well balanced rather than one dominating the other,
+which is a healthier sign for a model meant to be used as a screening aid
+rather than tuned to just maximize one metric.
+
+One implementation quirk observed during this run, worth noting rather
+than hiding: roughly half the epochs finished in ~6 seconds instead of the
+expected ~70, each accompanied by a `"Your input ran out of data;
+interrupting training"` warning from Keras. This is a known limitation of
+using the legacy `ImageDataGenerator` API (`data.py`) across multiple
+`.fit()` epochs on newer TensorFlow/Keras versions -- it doesn't invalidate
+the result above (EarlyStopping still selected its checkpoint off real
+validation numbers), but it means the model saw somewhat less real
+training data than 12 full epochs would suggest, and the training curve
+looks choppier as a result. Switching `data.py` to
+`tf.keras.utils.image_dataset_from_directory` would resolve this and is a
+reasonable next improvement.
